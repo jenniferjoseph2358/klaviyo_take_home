@@ -60,15 +60,9 @@ warehouse = ''
 schema = ''
 role = ''
 
-conn = sf.connect(user=user,password=password,account=account);
+conn = sf.connect(user=user,password=password,account=account, database=database, warehouse=warehouse, schema=schema, role=role);
 
 # creating a few SQL statements as variables
-
-warehouse_statement = "USE WAREHOUSE " + warehouse;
-database_statement = "USE DATABASE " + database;
-schema_statement = "USE SCHEMA " + schema;
-role_statement = "USE ROLE " + role;
-
 # for following DDL variables, see TODO
 
 # CREATING TABLE TO STORE INVOICE DATA IN ITS ORIGINAL FORMAT
@@ -155,14 +149,7 @@ def check_for_file(bucket_name, key):
             raise
 
 # execute SQL commands
-
-run_query(conn,warehouse_statement)
-run_query(conn,database_statement)
-run_query(conn,schema_statement)
-run_query(conn,role_statement)
-
 run_query(conn,create_table_statement) # original structure
-
 run_query(conn,create_customers_table_statement) # proposed structure
 run_query(conn,create_invoices_table_statement)
 run_query(conn,create_items_table_statement)
