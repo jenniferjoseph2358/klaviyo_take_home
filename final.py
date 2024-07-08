@@ -262,6 +262,12 @@ df_customers = df_customers[[
 print('Size of customers:', len(df_customers))
 print('Shape of customers:', df_customers.shape)
 
+# ADDITIONAL IMPROVEMENT -- instead of rewriting entire table, introduce staging table (or view) to store all records, and then only insert new records. Would need a way to refresh updates as well 
+
+#run_query(conn,'TRUNCATE TABLE CUSTOMERS_STAGING')
+#write_pandas(conn,df_customers, 'CUSTOMERS_STAGING')
+#run_query(conn,"INSERT INTO MY_DATABASE.PUBLIC.CUSTOMERS select * from CUSTOMERS_STAGING WHERE CUSTOMERID not in (select CUSTOMERID from CUSTOMERS)")
+
 write_pandas(conn,df_customers, 'CUSTOMERS')
 print(f'{df_customers.shape[0]} rows and {df_customers.shape[1]} columns have been loaded into CUSTOMERS in Snowflake.')
 
