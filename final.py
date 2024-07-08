@@ -30,6 +30,8 @@ from snowflake.connector.pandas_tools import write_pandas
 
 # TODO: Is there a better way to DRY with defining column names?
 
+#TODO: Complete s3_to_snowflake() 
+
 # CONFIGURE AWS AND SNOWFLAKE CREDENTIALS -- removed variable values for submission
 
 # AWS
@@ -62,7 +64,7 @@ role = ''
 
 conn = sf.connect(user=user,password=password,account=account, database=database, warehouse=warehouse, schema=schema, role=role);
 
-# creating a few SQL statements as variables
+# Creating a few SQL statements as variables
 # for following DDL variables, see TODO
 
 # CREATING TABLE TO STORE INVOICE DATA IN ITS ORIGINAL FORMAT
@@ -129,7 +131,7 @@ create_items_table_statement = "CREATE OR REPLACE TABLE items (" \
                          "ITEM string," \
                          "PRICE float)"
 
-# functions defined for exercise
+# Functions defined for exercise
 
 def run_query(conn, query):
     cursor = conn.cursor();
@@ -148,7 +150,20 @@ def check_for_file(bucket_name, key):
         else:
             raise
 
-# execute SQL commands
+# ideally we would have a function to complete this entire pipeline, but there are a few pieces to this not yet solved, so leaving as attempted here 
+
+def s3_to_snowflake(bucket_name, key, conn, table_name, columns_for_table):
+    if check_for_file(bucket_name, key):
+        object_from_s3 = s3.Object(bucket_name, key)
+        df = pd.read_csv(object_from_s3.get()['Body'])
+        df_for_table = df[columns_for_table] ## these would need to match / we would need to match the subset input via the columns_for_table value
+        write_pandas(conn, df_for_table, table_name) ## you would have to know that the table already exists with the specified columns / the right data types and not have to apply any transformations, or create the table from the df columns 
+        print(f'{df_for_table.shape[0]} rows and {df_for_table.shape[1]} columns have been loaded into {table_name} in Snowflake.')
+    else:
+        return check_for_file(bucket_name, key)
+
+# Execute SQL commands
+
 run_query(conn,create_table_statement) # original structure
 run_query(conn,create_customers_table_statement) # proposed structure
 run_query(conn,create_invoices_table_statement)
@@ -212,10 +227,7 @@ df['INVOICEDATE'] = pd.to_datetime(df['INVOICEDATE'], format='%m/%d/%y %H:%M')
 df['INVOICEDATE'] = df['INVOICEDATE'].dt.date
 
 write_pandas(conn,df,'TEST_INVOICE')
-
 print(f'{df.shape[0]} rows and {df.shape[1]} columns have been loaded into TEST_INVOICE in Snowflake.')
-
-#print(df)
 
 # ENTITY TABLES -- defining dataframes for customers, invoices, and items to capture the properties that ONLY persist to those entities
 
@@ -266,14 +278,14 @@ for i in range(1,max_item_price_combo + 1):
         invoice_id = row['INVOICEID']
         item = row[item_col]
         price = row[price_col]
-        if pd.notna(item) and pd.notna(price):
+        if pd.notna(item) and pd.notna(price): # recall that underlying data stores each item + price in a flat structure, and they are not necessarily all populated for each invoice
             items.append({'INVOICEID': invoice_id, 'ITEM': item, 'PRICE': price})
 
 df_items = pd.DataFrame(items)
-
-#print(df_items)
 write_pandas(conn,df_items, 'ITEMS')
 print(f'{df_items.shape[0]} rows and {df_items.shape[1]} columns have been loaded into ITEMS in Snowflake.')
+
+# Finally, creating the invoices table from ERD
 
 df_invoices = df[[
     'INVOICEID',
